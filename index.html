@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stinks — Launch on the dump</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css?v=9" />
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="#home">
+      <span class="mark" aria-hidden="true"></span>
+      STINKS
+    </a>
+    <nav>
+      <a href="#home">Explore</a>
+      <a href="#vault">Deck</a>
+      <a href="#stats">Stats</a>
+      <a href="#docs">Docs</a>
+    </nav>
+    <div class="top-actions">
+      <a class="btn btn-red" href="#launch">Launch token</a>
+      <button class="btn btn-ghost" id="connect">Connect wallet</button>
+    </div>
+  </header>
+  <main id="app"></main>
+  <footer class="foot">
+    <span>Stinks · Robinhood Chain testnet</span>
+    <span id="acct"></span>
+  </footer>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js"></script>
+  <script src="./app.js?v=9"></script>
+</body>
+</html>
