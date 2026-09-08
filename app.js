@@ -93,8 +93,8 @@ async function inverseTape(marketId) {
 
 async function loadCfg() {
   const [a, b] = await Promise.all([
-    fetch("./addresses.json?v=9").then((r) => r.json()),
-    fetch("./abi.json?v=9").then((r) => r.json()),
+    fetch("./addresses.json?v=10").then((r) => r.json()),
+    fetch("./abi.json?v=10").then((r) => r.json()),
   ]);
   cfg = a;
   abi = b;
@@ -344,7 +344,7 @@ function vaultPage(sym) {
     </div>
     <div class="panel mint-desk" id="mintDesk">
       <h2 id="mintTitle">${inv ? inv.symbol : "Deck"}</h2>
-      <p class="stat" id="mintSub">${live ? "Mint / redeem at NAV. Funding goes to hopper buybacks, not the iToken." : "This desk is not live yet."}</p>
+      <p class="stat" id="mintSub">${live ? "Mint / redeem inverse stocks." : "This desk is not live yet."}</p>
       ${live ? `
         ${assetToggle()}
         <p class="stat">NAV <b id="nav">—</b> · Lighter <b id="px">—</b></p>
