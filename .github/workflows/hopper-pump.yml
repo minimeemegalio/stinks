@@ -1,0 +1,30 @@
+name: hopper-pump
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+jobs:
+  pump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: foundry-rs/foundry-toolchain@v1
+      - name: pump if hopper has ETH
+        env:
+          RPC: https://rpc.testnet.chain.robinhood.com
+          HOPPER: "0x6126f7B506C52E7b9Be89B05a13ece4568Bfa5B0"
+          PRIVATE_KEY: ${{ secrets.HOPPER_KEY }}
+        run: |
+          set -euo pipefail
+          BAL=$(cast balance "$HOPPER" --rpc-url "$RPC")
+          echo "hopper wei=$BAL"
+          if [ "$BAL" -lt 10000000000000 ]; then
+            echo "below dust — skip"
+            exit 0
+          fi
+          if [ -z "${PRIVATE_KEY:-}" ]; then
+            echo "Add repo secret HOPPER_KEY (keeper private key, 0x…)"
+            exit 1
+          fi
+          cast send "$HOPPER" "pump()" --rpc-url "$RPC" --private-key "$PRIVATE_KEY" --legacy
