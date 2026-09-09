@@ -93,8 +93,8 @@ async function inverseTape(marketId) {
 
 async function loadCfg() {
   const [a, b] = await Promise.all([
-    fetch("./addresses.json?v=11").then((r) => r.json()),
-    fetch("./abi.json?v=11").then((r) => r.json()),
+    fetch("./addresses.json?v=12").then((r) => r.json()),
+    fetch("./abi.json?v=12").then((r) => r.json()),
   ]);
   cfg = a;
   abi = b;
@@ -139,8 +139,27 @@ async function connect() {
   await ensureChain();
   signer = await provider.getSigner();
   account = await signer.getAddress();
-  document.getElementById("connect").textContent = short(account);
+  const btn = document.getElementById("connect");
+  btn.textContent = "Disconnect " + short(account);
+  btn.title = account;
   document.getElementById("acct").textContent = account;
+  render();
+}
+
+async function disconnect() {
+  try {
+    await window.ethereum?.request({
+      method: "wallet_revokePermissions",
+      params: [{ eth_accounts: {} }],
+    });
+  } catch (_) {}
+  signer = null;
+  account = null;
+  provider = null;
+  const btn = document.getElementById("connect");
+  btn.textContent = "Connect wallet";
+  btn.title = "";
+  document.getElementById("acct").textContent = "";
   render();
 }
 
@@ -784,6 +803,9 @@ function render() {
   after(page === "" ? "home" : page, extra);
 }
 
-document.getElementById("connect").onclick = () => connect().catch((e) => alert(e.message));
+document.getElementById("connect").onclick = () => {
+  const run = signer ? disconnect : connect;
+  run().catch((e) => alert(e.shortMessage || e.message));
+};
 window.addEventListener("hashchange", render);
 loadCfg().then(render).catch((e) => { app().innerHTML = "<p>" + e.message + "</p>"; });
