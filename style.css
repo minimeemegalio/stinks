@@ -114,6 +114,14 @@ main { max-width: 1280px; margin: 0 auto; padding: 28px 24px 80px; }
   border-radius: 999px; background: var(--red-soft); color: #ff8a84;
 }
 .badge.ok { background: rgba(57, 255, 136, 0.15); color: var(--green); }
+.badge.off { background: rgba(191, 0, 255, 0.22); color: var(--purple-hot); }
+.official {
+  display: flex; gap: 16px; align-items: center; text-decoration: none;
+  background: var(--card); border: 1px solid var(--purple); border-radius: 20px;
+  padding: 16px 18px; margin: 0 0 18px; box-shadow: var(--shadow);
+}
+.official p { margin: 6px 0; color: var(--muted); font-size: 14px; line-height: 1.4; }
+.official .ca { font-size: 12px; color: var(--purple-hot); word-break: break-all; }
 .meta { margin-top: 12px; font-size: 13px; color: var(--muted); }
 .meta b { color: var(--ink); }
 .bar { height: 6px; background: #2a0a44; border-radius: 99px; margin-top: 10px; overflow: hidden; }
