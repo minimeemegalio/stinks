@@ -124,8 +124,8 @@ async function inverseTape(marketId) {
 
 async function loadCfg() {
   const [a, b] = await Promise.all([
-    fetch("./addresses.json?v=21").then((r) => r.json()),
-    fetch("./abi.json?v=21").then((r) => r.json()),
+    fetch("./addresses.json?v=22").then((r) => r.json()),
+    fetch("./abi.json?v=22").then((r) => r.json()),
   ]);
   cfg = a;
   abi = b;
