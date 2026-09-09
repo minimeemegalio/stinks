@@ -64,6 +64,8 @@ async function curveTarget(pad) {
 
 const LIGHTER = "https://api.rh.lighter.xyz/api/v1";
 let lighterBooks = null;
+let lighterAt = 0;
+let tapeTimer = 0;
 
 function pickInverse(sym) {
   const list = cfg.inverses || [];
@@ -100,12 +102,13 @@ function sparkSvg(values, up, id) {
     <path d="${line}" fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round"/>
   </svg>`;
 }
-async function loadLighter() {
-  if (lighterBooks) return lighterBooks;
+async function loadLighter(force) {
+  if (!force && lighterBooks && Date.now() - lighterAt < 50000) return lighterBooks;
   const r = await fetch(LIGHTER + "/orderBookDetails");
   const d = await r.json();
   lighterBooks = {};
   for (const b of d.order_book_details || []) lighterBooks[String(b.symbol).toUpperCase()] = b;
+  lighterAt = Date.now();
   return lighterBooks;
 }
 async function inverseTape(marketId) {
@@ -121,8 +124,8 @@ async function inverseTape(marketId) {
 
 async function loadCfg() {
   const [a, b] = await Promise.all([
-    fetch("./addresses.json?v=19").then((r) => r.json()),
-    fetch("./abi.json?v=19").then((r) => r.json()),
+    fetch("./addresses.json?v=20").then((r) => r.json()),
+    fetch("./abi.json?v=20").then((r) => r.json()),
   ]);
   cfg = a;
   abi = b;
@@ -440,19 +443,8 @@ function vaultPage(sym) {
   const inv = pickInverse(sym);
   const unit = payAsset === "USDG" ? "USDG" : "ETH";
   const live = inv && inv.status === "live";
-  return `
-    <div class="vault-head">
-      <div>
-        <h1>Inverse Deck</h1>
-        <p>Charts show the inverse performance of the stocks — green means the stock dumped.</p>
-      </div>
-    </div>
-    <div class="panel mint-desk" id="mintDesk">
-      <h2 id="mintTitle">${inv ? inv.symbol : "Deck"}</h2>
-      <p class="stat" id="mintSub">${live ? "Mint / redeem inverse stocks." : "This desk is not live yet."}</p>
-      ${live ? `
+  const mint = live ? `
         ${assetToggle()}
-        <p class="stat">NAV <b id="nav">—</b> · Lighter <b id="px">—</b></p>
         <p class="stat">Your ${inv.symbol} <b id="ibal">—</b> · ${unit} <b id="abal">—</b></p>
         <div class="row2">
           <div>
@@ -468,7 +460,19 @@ function vaultPage(sym) {
           <button class="btn btn-red btn-wide" id="mint">Mint ${inv.symbol}</button>
           <button class="btn btn-ghost btn-wide" id="redeem">Redeem ${unit}</button>
         </div>
-      ` : `<p class="stat">Poster only. Same card once the vault is deployed.</p>`}
+      ` : `<p class="stat">Poster only. Same card once the vault is deployed.</p>`;
+  return `
+    <div class="vault-head">
+      <div>
+        <h1>Inverse Deck</h1>
+        <p>Charts show the inverse performance of the stocks — green means the stock dumped. Tape refreshes every minute.</p>
+      </div>
+    </div>
+    <div class="panel mint-desk" id="mintDesk">
+      <h2 id="mintTitle">${inv ? inv.symbol : "Deck"}</h2>
+      <p class="stat" id="mintSub">${live ? "Mint / redeem inverse stocks." : "This desk is not live yet."}</p>
+      <p class="stat">Tape <b id="px">—</b>${live ? ' · NAV <b id="nav">—</b>' : ""}</p>
+      ${mint}
       <div class="log"></div>
     </div>
     <div id="desks" class="desks"><div class="empty">Loading tape…</div></div>`;
@@ -637,6 +641,29 @@ async function fillStats() {
   }
 }
 
+async function paintTape(sym) {
+  const inv = pickInverse(sym);
+  const el = document.getElementById("px");
+  if (!inv || !el) return;
+  try {
+    const books = await loadLighter();
+    const b = books[inv.underlying];
+    if (!b) return;
+    const mark = Number(b.mark_price);
+    const iChg = -Number(b.daily_price_change);
+    el.textContent = inv.underlying + " $" + mark.toFixed(2) + " · i " + (iChg >= 0 ? "+" : "") + iChg.toFixed(2) + "%";
+  } catch (_) {}
+}
+function startTape(extra) {
+  clearInterval(tapeTimer);
+  const tick = () => {
+    lighterAt = 0;
+    fillDesks(extra);
+    paintTape(extra);
+  };
+  tick();
+  tapeTimer = setInterval(tick, 60000);
+}
 async function fillDesks(selected) {
   const el = document.getElementById("desks");
   if (!el) return;
@@ -664,8 +691,8 @@ async function fillDesks(selected) {
           <div class="desk-name">Inverse ${inv.name || inv.underlying}</div>
         </div>
         <div class="desk-px">
-          <div class="desk-mark">${px}</div>
-          <div class="desk-chg ${up ? "up" : "dn"}">${pct}</div>
+          <div class="desk-mark">${pct}</div>
+          <div class="desk-chg ${up ? "up" : "dn"}">${inv.underlying} ${px}</div>
         </div>
       </div>
       ${sparkSvg(series, up, inv.symbol)}
@@ -686,6 +713,7 @@ async function fillDesks(selected) {
 
 async function after(page, extra) {
   bindToggle();
+  if (page !== "vault") clearInterval(tapeTimer);
   if (page === "home") {
     fillBoard();
     return;
@@ -816,19 +844,12 @@ async function after(page, extra) {
       };
     }
     if (page === "vault") {
-      fillDesks(extra);
+      startTape(extra);
       const inv = pickInverse(extra);
       if (inv && inv.status === "live" && signer) {
         const v = new ethers.Contract(inv.vault, abi.InverseVault, signer);
         const tok = new ethers.Contract(inv.token, abi.InverseToken, signer);
-        document.getElementById("nav").textContent = ethers.formatEther(await v.nav());
-        try {
-          const books = await loadLighter();
-          const b = books[inv.underlying];
-          if (b) document.getElementById("px").textContent = "$" + Number(b.mark_price).toFixed(2);
-        } catch (_) {
-          document.getElementById("px").textContent = ethers.formatEther(await oraC().price());
-        }
+        document.getElementById("nav").textContent = Number(ethers.formatEther(await v.nav())).toFixed(6);
         document.getElementById("ibal").textContent = ethers.formatEther(await tok.balanceOf(account));
         if (payAsset === "USDG") {
           document.getElementById("abal").textContent = ethers.formatUnits(await usdgC().balanceOf(account), 6);
