@@ -124,8 +124,8 @@ async function inverseTape(marketId) {
 
 async function loadCfg() {
   const [a, b] = await Promise.all([
-    fetch("./addresses.json?v=20").then((r) => r.json()),
-    fetch("./abi.json?v=20").then((r) => r.json()),
+    fetch("./addresses.json?v=21").then((r) => r.json()),
+    fetch("./abi.json?v=21").then((r) => r.json()),
   ]);
   cfg = a;
   abi = b;
@@ -448,11 +448,11 @@ function vaultPage(sym) {
         <p class="stat">Your ${inv.symbol} <b id="ibal">—</b> · ${unit} <b id="abal">—</b></p>
         <div class="row2">
           <div>
-            <label>${unit} in</label>
+            <label>${unit} in <button type="button" class="max" id="maxIn">Max</button></label>
             <input id="mintAmt" placeholder="${payAsset==="USDG"?"10":"0.001"}" />
           </div>
           <div>
-            <label>${inv.symbol} out</label>
+            <label>${inv.symbol} out <button type="button" class="max" id="maxOut">Max</button></label>
             <input id="redAmt" placeholder="1" />
           </div>
         </div>
@@ -856,6 +856,20 @@ async function after(page, extra) {
         } else {
           document.getElementById("abal").textContent = ethers.formatEther(await signer.provider.getBalance(account));
         }
+        document.getElementById("maxIn").onclick = async () => {
+          if (!signer) { await connect(); return; }
+          if (payAsset === "USDG") {
+            document.getElementById("mintAmt").value = ethers.formatUnits(await usdgC().balanceOf(account), 6);
+          } else {
+            const gas = ethers.parseEther("0.0003");
+            const bal = await signer.provider.getBalance(account);
+            document.getElementById("mintAmt").value = ethers.formatEther(bal > gas ? bal - gas : 0n);
+          }
+        };
+        document.getElementById("maxOut").onclick = async () => {
+          if (!signer) { await connect(); return; }
+          document.getElementById("redAmt").value = ethers.formatEther(await tok.balanceOf(account));
+        };
         document.getElementById("mint").onclick = async () => {
           try {
             if (payAsset === "USDG") {
