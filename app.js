@@ -121,8 +121,8 @@ async function inverseTape(marketId) {
 
 async function loadCfg() {
   const [a, b] = await Promise.all([
-    fetch("./addresses.json?v=18").then((r) => r.json()),
-    fetch("./abi.json?v=18").then((r) => r.json()),
+    fetch("./addresses.json?v=19").then((r) => r.json()),
+    fetch("./abi.json?v=19").then((r) => r.json()),
   ]);
   cfg = a;
   abi = b;
@@ -299,7 +299,7 @@ function tokenCard(t) {
       ${img}
       <div>
         <div class="tkr">$${t.symbol}${isOfficial(t) ? " · official" : ""}</div>
-        <div class="nm">${isOfficial(t) ? "Official launchpad token. Fair launch. 70% of launchpad's volume fees buy and burn the token." : t.name}</div>
+        <div class="nm">${isOfficial(t) ? "Official launchpad token. 70% of launchpad's volume fees buy and burn the token." : t.name}</div>
       </div>
       <span class="badge ${isOfficial(t) ? "off" : t.graduated ? "ok" : ""}">${isOfficial(t) ? "Official" : t.graduated ? "Graduated" : "Live"}</span>
     </div>
@@ -333,7 +333,7 @@ function home() {
       <div class="av" style="background-image:url('./logo.png?v=2');background-size:cover"></div>
       <div>
         <div class="tkr">$STINKS · official pad token</div>
-        <p>Official launchpad token. Fair launch. 70% of launchpad's volume fees buy and burn the token.</p>
+        <p>Official launchpad token. 70% of launchpad's volume fees buy and burn the token.</p>
         <span class="ca">${cfg.stinks}</span>
       </div>
     </a>
@@ -422,7 +422,7 @@ function tokenPage(id) {
         ${av}
         <div>
           <h2 id="tt" style="margin:0">${Number(id) === 0 ? "$STINKS" : "Launch #" + id}</h2>
-          <p class="stat" id="tsub" style="margin:4px 0 0">${Number(id) === 0 ? "Official launchpad token. Fair launch. 70% of launchpad's volume fees buy and burn the token." : "Paired with " + (meta.pair || "ETH")}</p>
+          <p class="stat" id="tsub" style="margin:4px 0 0">${Number(id) === 0 ? "Official launchpad token. 70% of launchpad's volume fees buy and burn the token." : "Paired with " + (meta.pair || "ETH")}</p>
         </div>
       </div>
       ${assetToggle()}
