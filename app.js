@@ -33,8 +33,8 @@ function artFor(t) {
   const meta = getMeta(t.id || t);
   if (meta.img) return meta.img;
   const tok = (t.token || "").toLowerCase();
-  if (tok && cfg.stinks && tok === String(cfg.stinks).toLowerCase()) return "./logo.png";
-  if (String(t.symbol || "").toUpperCase() === "STINKS") return "./logo.png";
+  if (tok && cfg.stinks && tok === String(cfg.stinks).toLowerCase()) return "./logo.png?v=2";
+  if (String(t.symbol || "").toUpperCase() === "STINKS") return "./logo.png?v=2";
   return "";
 }
 function shrinkFile(file) {
@@ -121,8 +121,8 @@ async function inverseTape(marketId) {
 
 async function loadCfg() {
   const [a, b] = await Promise.all([
-    fetch("./addresses.json?v=14").then((r) => r.json()),
-    fetch("./abi.json?v=14").then((r) => r.json()),
+    fetch("./addresses.json?v=15").then((r) => r.json()),
+    fetch("./abi.json?v=15").then((r) => r.json()),
   ]);
   cfg = a;
   abi = b;
