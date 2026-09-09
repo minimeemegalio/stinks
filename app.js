@@ -1,9 +1,9 @@
 const CHAIN = {
-  chainId: "0xb626",
-  chainName: "Robinhood Chain Testnet",
+  chainId: "0x1237",
+  chainName: "Robinhood Chain",
   nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
-  rpcUrls: ["https://rpc.testnet.chain.robinhood.com"],
-  blockExplorerUrls: ["https://explorer.testnet.chain.robinhood.com"],
+  rpcUrls: ["https://rpc.mainnet.chain.robinhood.com"],
+  blockExplorerUrls: ["https://robinhoodchain.blockscout.com"],
 };
 
 const ERC20_ABI = [
@@ -93,8 +93,8 @@ async function inverseTape(marketId) {
 
 async function loadCfg() {
   const [a, b] = await Promise.all([
-    fetch("./addresses.json?v=10").then((r) => r.json()),
-    fetch("./abi.json?v=10").then((r) => r.json()),
+    fetch("./addresses.json?v=11").then((r) => r.json()),
+    fetch("./abi.json?v=11").then((r) => r.json()),
   ]);
   cfg = a;
   abi = b;
@@ -480,14 +480,18 @@ async function fillStats() {
   try {
     const p = readProvider();
     const hop = new ethers.Contract(cfg.hopper, abi.FeeHopper, p);
-    const st = new ethers.Contract(cfg.stinks, abi.StinksToken, p);
     const pad = new ethers.Contract(cfg.pad, abi.Launchpad, p);
     const tok = new ethers.Contract(cfg.iNVDA, abi.InverseToken, p);
     const v = new ethers.Contract(cfg.vault, abi.InverseVault, p);
     const usd = new ethers.Contract(cfg.usdg, ERC20_ABI, p);
-    const genesis = ethers.parseEther("1000000000");
-    const supply = await st.totalSupply();
-    const burnedSupply = genesis > supply ? genesis - supply : 0n;
+    let supply = 0n;
+    let burnedSupply = 0n;
+    if (cfg.stinks) {
+      const st = new ethers.Contract(cfg.stinks, abi.StinksToken, p);
+      supply = await st.totalSupply();
+      const genesis = ethers.parseEther("1000000000");
+      burnedSupply = genesis > supply ? genesis - supply : 0n;
+    }
     const hEth = await p.getBalance(cfg.hopper);
     let hUsdg = 0n, totalIn = 0n, totalBurned = 0n, pumps = 0n, last = 0n, meme = ethers.ZeroAddress;
     try { hUsdg = await usd.balanceOf(cfg.hopper); } catch (_) {}
