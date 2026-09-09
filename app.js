@@ -121,8 +121,8 @@ async function inverseTape(marketId) {
 
 async function loadCfg() {
   const [a, b] = await Promise.all([
-    fetch("./addresses.json?v=15").then((r) => r.json()),
-    fetch("./abi.json?v=15").then((r) => r.json()),
+    fetch("./addresses.json?v=16").then((r) => r.json()),
+    fetch("./abi.json?v=16").then((r) => r.json()),
   ]);
   cfg = a;
   abi = b;
@@ -281,6 +281,11 @@ async function loadBoard() {
   return { rows, target, targetWad, n };
 }
 
+function isOfficial(t) {
+  const tok = (t.token || "").toLowerCase();
+  return (cfg.stinks && tok === String(cfg.stinks).toLowerCase())
+    || String(t.symbol || "").toUpperCase() === "STINKS";
+}
 function tokenCard(t) {
   const av = (t.symbol || "?").replace("$", "").slice(0, 3).toUpperCase();
   const meta = getMeta(t.id);
@@ -296,7 +301,7 @@ function tokenCard(t) {
         <div class="tkr">$${t.symbol}</div>
         <div class="nm">${t.name}</div>
       </div>
-      <span class="badge ${t.graduated ? "ok" : ""}">${t.graduated ? "Graduated" : "Live"}</span>
+      <span class="badge ${isOfficial(t) ? "off" : t.graduated ? "ok" : ""}">${isOfficial(t) ? "Official" : t.graduated ? "Graduated" : "Live"}</span>
     </div>
     <div class="meta">Paired with <b>${pair}</b></div>
     <div class="bar"><i style="width:${t.pct}%"></i></div>
@@ -324,6 +329,14 @@ function home() {
         </div>
       </div>
     </section>
+    <a class="official" href="#token/0">
+      <div class="av" style="background-image:url('./logo.png?v=2');background-size:cover"></div>
+      <div>
+        <div class="tkr">$STINKS · official pad token</div>
+        <p>This is the launchpad token. 70% of pad volume fees buy and burn this CA. Not a meme on the board — the one the hopper feeds.</p>
+        <span class="ca">${cfg.stinks}</span>
+      </div>
+    </a>
     <div class="toolbar">
       <input class="search" id="q" placeholder="Search name, ticker, or contract" />
     </div>
