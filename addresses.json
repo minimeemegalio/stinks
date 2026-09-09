@@ -3,7 +3,7 @@
   "rpc": "https://rpc.mainnet.chain.robinhood.com",
   "explorer": "https://robinhoodchain.blockscout.com",
   "usdg": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
-  "stinks": "",
+  "stinks": "0x8BBBb1357b62145889E957e927b1bF6edA02d007",
   "stinksPair": "",
   "hopper": "0x241E7E09C0A8394fe5B507bc15Dbe6846e933B48",
   "oracle": "0xFd1e6a8c86C2BaDF0bAE240F24b7A710bd66F22E",
