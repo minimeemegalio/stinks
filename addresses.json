@@ -21,7 +21,7 @@
     { "symbol": "iOPENAI", "underlying": "OPENAI", "name": "OpenAI", "token": "", "vault": "", "status": "soon" },
     { "symbol": "iSPCX", "underlying": "SPCX", "name": "SpaceX", "token": "", "vault": "", "status": "soon" },
     { "symbol": "iSNDK", "underlying": "SNDK", "name": "Sandisk", "token": "", "vault": "", "status": "soon" },
-    { "symbol": "iTSLA", "underlying": "TSLA", "name": "Tesla", "token": "", "vault": "", "status": "soon" },
+    { "symbol": "iTSLA", "underlying": "TSLA", "name": "Tesla", "token": "0xb7B67832dE2fCd58048B9DC386B6caE2984DD749", "vault": "0xd9706f093ef1aa4f547e09C023e2CD2f7C6ab410", "status": "live" },
     { "symbol": "iSKHY", "underlying": "SKHY", "name": "SK Hynix", "token": "", "vault": "", "status": "soon" },
     { "symbol": "iMU", "underlying": "MU", "name": "Micron", "token": "", "vault": "", "status": "soon" },
     { "symbol": "iGOOGL", "underlying": "GOOGL", "name": "Alphabet", "token": "", "vault": "", "status": "soon" },
