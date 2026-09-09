@@ -93,8 +93,8 @@ async function inverseTape(marketId) {
 
 async function loadCfg() {
   const [a, b] = await Promise.all([
-    fetch("./addresses.json?v=12").then((r) => r.json()),
-    fetch("./abi.json?v=12").then((r) => r.json()),
+    fetch("./addresses.json?v=13").then((r) => r.json()),
+    fetch("./abi.json?v=13").then((r) => r.json()),
   ]);
   cfg = a;
   abi = b;
@@ -131,36 +131,79 @@ async function ensureChain() {
   }
 }
 
+function paintWallet() {
+  const c = document.getElementById("connect");
+  const d = document.getElementById("disconnect");
+  const a = document.getElementById("acct");
+  if (account) {
+    c.textContent = short(account);
+    c.title = account;
+    if (d) d.hidden = false;
+    if (a) a.textContent = account;
+  } else {
+    c.textContent = "Connect wallet";
+    c.title = "";
+    if (d) d.hidden = true;
+    if (a) a.textContent = "";
+  }
+}
+
 async function connect() {
   const eth = window.ethereum;
   if (!eth) throw new Error("No wallet. Install MetaMask or Rabby.");
   provider = new ethers.BrowserProvider(eth);
-  await provider.send("eth_requestAccounts", []);
+  try {
+    await eth.request({ method: "wallet_requestPermissions", params: [{ eth_accounts: {} }] });
+  } catch (e) {
+    if (e && (e.code === 4001 || e.code === "ACTION_REJECTED")) throw e;
+    await provider.send("eth_requestAccounts", []);
+  }
   await ensureChain();
   signer = await provider.getSigner();
   account = await signer.getAddress();
-  const btn = document.getElementById("connect");
-  btn.textContent = "Disconnect " + short(account);
-  btn.title = account;
-  document.getElementById("acct").textContent = account;
+  paintWallet();
   render();
 }
 
 async function disconnect() {
+  const eth = window.ethereum;
   try {
-    await window.ethereum?.request({
-      method: "wallet_revokePermissions",
-      params: [{ eth_accounts: {} }],
-    });
+    await eth?.request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] });
   } catch (_) {}
   signer = null;
   account = null;
   provider = null;
-  const btn = document.getElementById("connect");
-  btn.textContent = "Connect wallet";
-  btn.title = "";
-  document.getElementById("acct").textContent = "";
+  paintWallet();
   render();
+}
+
+async function hydrateWallet() {
+  const eth = window.ethereum;
+  if (!eth) return;
+  const accs = await eth.request({ method: "eth_accounts" });
+  if (!accs || !accs[0]) return;
+  provider = new ethers.BrowserProvider(eth);
+  await ensureChain();
+  signer = await provider.getSigner();
+  account = await signer.getAddress();
+  paintWallet();
+}
+
+function watchWallet() {
+  const eth = window.ethereum;
+  if (!eth || eth.__stinksWatch) return;
+  eth.__stinksWatch = true;
+  eth.on?.("accountsChanged", (accs) => {
+    if (!accs || accs.length === 0) {
+      signer = null;
+      account = null;
+      provider = null;
+      paintWallet();
+      render();
+      return;
+    }
+    hydrateWallet().then(render).catch(() => {});
+  });
 }
 
 function assetToggle() {
@@ -803,9 +846,11 @@ function render() {
   after(page === "" ? "home" : page, extra);
 }
 
-document.getElementById("connect").onclick = () => {
-  const run = signer ? disconnect : connect;
-  run().catch((e) => alert(e.shortMessage || e.message));
-};
+document.getElementById("connect").onclick = () => connect().catch((e) => alert(e.shortMessage || e.message));
+document.getElementById("disconnect").onclick = () => disconnect().catch((e) => alert(e.shortMessage || e.message));
+watchWallet();
 window.addEventListener("hashchange", render);
-loadCfg().then(render).catch((e) => { app().innerHTML = "<p>" + e.message + "</p>"; });
+loadCfg().then(async () => {
+  try { await hydrateWallet(); } catch (_) {}
+  render();
+}).catch((e) => { app().innerHTML = "<p>" + e.message + "</p>"; });
