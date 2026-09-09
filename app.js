@@ -121,8 +121,8 @@ async function inverseTape(marketId) {
 
 async function loadCfg() {
   const [a, b] = await Promise.all([
-    fetch("./addresses.json?v=16").then((r) => r.json()),
-    fetch("./abi.json?v=16").then((r) => r.json()),
+    fetch("./addresses.json?v=17").then((r) => r.json()),
+    fetch("./abi.json?v=17").then((r) => r.json()),
   ]);
   cfg = a;
   abi = b;
@@ -333,7 +333,7 @@ function home() {
       <div class="av" style="background-image:url('./logo.png?v=2');background-size:cover"></div>
       <div>
         <div class="tkr">$STINKS · official pad token</div>
-        <p>This is the launchpad token. 70% of pad volume fees buy and burn this CA. Not a meme on the board — the one the hopper feeds.</p>
+        <p>Official launchpad token. Fair launch. 70% of launchpad's volume fees buy and burn the token.</p>
         <span class="ca">${cfg.stinks}</span>
       </div>
     </a>
