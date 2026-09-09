@@ -12,11 +12,15 @@ jobs:
       - uses: foundry-rs/foundry-toolchain@v1
       - name: pump if hopper has ETH
         env:
-          RPC: https://rpc.testnet.chain.robinhood.com
-          HOPPER: "0x6126f7B506C52E7b9Be89B05a13ece4568Bfa5B0"
+          RPC: ${{ vars.HOPPER_RPC || 'https://rpc.mainnet.chain.robinhood.com' }}
+          HOPPER: ${{ vars.HOPPER }}
           PRIVATE_KEY: ${{ secrets.HOPPER_KEY }}
         run: |
           set -euo pipefail
+          if [ -z "${HOPPER:-}" ]; then
+            echo "Set repo variable HOPPER to the hopper CA"
+            exit 0
+          fi
           BAL=$(cast balance "$HOPPER" --rpc-url "$RPC")
           echo "hopper wei=$BAL"
           if [ "$BAL" -lt 10000000000000 ]; then
@@ -27,4 +31,5 @@ jobs:
             echo "Add repo secret HOPPER_KEY (keeper private key, 0x…)"
             exit 1
           fi
+          # no token buys until setStinks — pump() is a no-op then
           cast send "$HOPPER" "pump()" --rpc-url "$RPC" --private-key "$PRIVATE_KEY" --legacy
