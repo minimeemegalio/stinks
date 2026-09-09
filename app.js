@@ -29,6 +29,34 @@ function getMeta(id) {
   try { return JSON.parse(localStorage.getItem("stinks-meta") || "{}")[id] || {}; }
   catch { return {}; }
 }
+function artFor(t) {
+  const meta = getMeta(t.id || t);
+  if (meta.img) return meta.img;
+  const tok = (t.token || "").toLowerCase();
+  if (tok && cfg.stinks && tok === String(cfg.stinks).toLowerCase()) return "./logo.png";
+  if (String(t.symbol || "").toUpperCase() === "STINKS") return "./logo.png";
+  return "";
+}
+function shrinkFile(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onerror = () => reject(r.error);
+    r.onload = () => {
+      const im = new Image();
+      im.onerror = () => resolve(r.result);
+      im.onload = () => {
+        const c = document.createElement("canvas");
+        const s = 96;
+        c.width = s;
+        c.height = s;
+        c.getContext("2d").drawImage(im, 0, 0, s, s);
+        resolve(c.toDataURL("image/jpeg", 0.7));
+      };
+      im.src = r.result;
+    };
+    r.readAsDataURL(file);
+  });
+}
 async function curveTarget(pad) {
   // ethers v6: contract.target is the address, shadows Solidity target()
   return pad.getFunction("target")();
@@ -93,8 +121,8 @@ async function inverseTape(marketId) {
 
 async function loadCfg() {
   const [a, b] = await Promise.all([
-    fetch("./addresses.json?v=13").then((r) => r.json()),
-    fetch("./abi.json?v=13").then((r) => r.json()),
+    fetch("./addresses.json?v=14").then((r) => r.json()),
+    fetch("./abi.json?v=14").then((r) => r.json()),
   ]);
   cfg = a;
   abi = b;
@@ -256,10 +284,11 @@ async function loadBoard() {
 function tokenCard(t) {
   const av = (t.symbol || "?").replace("$", "").slice(0, 3).toUpperCase();
   const meta = getMeta(t.id);
-  const img = meta.img
-    ? `<div class="av" style="background-image:url('${meta.img}');background-size:cover;background-position:center"></div>`
+  const src = artFor(t);
+  const img = src
+    ? `<div class="av" style="background-image:url('${src}');background-size:cover;background-position:center"></div>`
     : `<div class="av">${av}</div>`;
-  const pair = meta.pair || "iNVDA";
+  const pair = meta.pair || "ETH";
   return `<a class="card" href="#token/${t.id}">
     <div class="card-top">
       ${img}
@@ -370,8 +399,9 @@ function launchPage() {
 function tokenPage(id) {
   const unit = payAsset === "USDG" ? "USDG" : "ETH";
   const meta = getMeta(id);
-  const av = meta.img
-    ? `<div class="av" style="width:64px;height:64px;background-image:url('${meta.img}');background-size:cover;background-position:center"></div>`
+  const src = artFor({ id, token: Number(id) === 0 ? cfg.stinks : "", symbol: Number(id) === 0 ? "STINKS" : "" });
+  const av = src
+    ? `<div class="av" style="width:64px;height:64px;background-image:url('${src}');background-size:cover;background-position:center"></div>`
     : `<div class="av" style="width:64px;height:64px">$</div>`;
   return `
     <div class="panel">
@@ -675,19 +705,16 @@ async function after(page, extra) {
           syncPrev();
         };
       });
-      document.getElementById("img").addEventListener("change", (ev) => {
+      document.getElementById("img").addEventListener("change", async (ev) => {
         const f = ev.target.files && ev.target.files[0];
         if (!f) return;
-        const r = new FileReader();
-        r.onload = () => {
-          const av = document.getElementById("prevAv");
-          av.style.backgroundImage = `url(${r.result})`;
-          av.style.backgroundSize = "cover";
-          av.textContent = "";
-          document.getElementById("imgLab").textContent = f.name;
-          av.dataset.src = r.result;
-        };
-        r.readAsDataURL(f);
+        const data = await shrinkFile(f);
+        const av = document.getElementById("prevAv");
+        av.style.backgroundImage = `url(${data})`;
+        av.style.backgroundSize = "cover";
+        av.textContent = "";
+        document.getElementById("imgLab").textContent = f.name;
+        av.dataset.src = data;
       });
       try {
         const p = new ethers.Contract(cfg.pad, abi.Launchpad, readProvider());
@@ -721,7 +748,7 @@ async function after(page, extra) {
           };
           try {
             const all = JSON.parse(localStorage.getItem("stinks-meta") || "{}");
-            if (meta.img && meta.img.length > 200000) meta.img = "";
+            if (meta.img && meta.img.length > 180000) meta.img = "";
             all[id] = meta;
             localStorage.setItem("stinks-meta", JSON.stringify(all));
           } catch (_) {}
