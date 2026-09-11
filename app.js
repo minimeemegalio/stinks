@@ -15,9 +15,11 @@ const ERC20_ABI = [
   "function name() view returns (string)",
 ];
 
-let cfg, abi, provider, signer, account;
+let cfg, abi, provider, signer, account, rhProvider;
 let payAsset = "ETH";
 let pairFilter = "ALL";
+let boardCache = null;
+let boardAt = 0;
 
 const app = () => document.getElementById("app");
 const setLog = (m) => {
@@ -124,8 +126,8 @@ async function inverseTape(marketId) {
 
 async function loadCfg() {
   const [a, b] = await Promise.all([
-    fetch("./addresses.json?v=27").then((r) => r.json()),
-    fetch("./abi.json?v=27").then((r) => r.json()),
+    fetch("./addresses.json?v=28").then((r) => r.json()),
+    fetch("./abi.json?v=28").then((r) => r.json()),
   ]);
   cfg = a;
   abi = b;
@@ -135,8 +137,10 @@ function C(name, kind) {
   return new ethers.Contract(cfg[name], abi[kind], signer || provider);
 }
 function readProvider() {
-  if (provider) return provider;
-  return new ethers.JsonRpcProvider(cfg.rpc);
+  if (!rhProvider) {
+    rhProvider = new ethers.JsonRpcProvider(cfg.rpc, 4663, { staticNetwork: true, batchMaxCount: 1 });
+  }
+  return rhProvider;
 }
 const vaultC = () => C("vault", "InverseVault");
 const iTokC = () => C("iNVDA", "InverseToken");
@@ -263,25 +267,28 @@ function parseLaunch(L) {
   };
 }
 
-async function loadBoard() {
+async function loadBoard(force) {
+  if (!force && boardCache && Date.now() - boardAt < 15000) return boardCache;
   const p = new ethers.Contract(cfg.pad, abi.Launchpad, readProvider());
   const v = new ethers.Contract(cfg.vault, abi.InverseVault, readProvider());
-  const n = Number(await p.launchCount());
-  const target = await curveTarget(p);
+  const [nRaw, target] = await Promise.all([p.launchCount(), curveTarget(p)]);
+  const n = Number(nRaw);
   const targetWad = await v.ethToWad(target);
-  const rows = [];
-  for (let i = n - 1; i >= 0; i--) {
+  const ids = [];
+  for (let i = n - 1; i >= 0; i--) ids.push(i);
+  const rows = await Promise.all(ids.map(async (i) => {
     const L = parseLaunch(await p.getLaunch(i));
     let name = "Token", symbol = "TKN";
     try {
       const t = new ethers.Contract(L.token, ERC20_ABI, readProvider());
-      name = await t.name();
-      symbol = await t.symbol();
+      [name, symbol] = await Promise.all([t.name(), t.symbol()]);
     } catch (_) {}
     const pct = targetWad > 0n ? Number((L.raisedWad * 10000n) / targetWad) / 100 : 0;
-    rows.push({ id: i, ...L, name, symbol, pct: Math.min(100, pct) });
-  }
-  return { rows, target, targetWad, n };
+    return { id: i, ...L, name, symbol, pct: Math.min(100, pct) };
+  }));
+  boardCache = { rows, target, targetWad, n };
+  boardAt = Date.now();
+  return boardCache;
 }
 
 function isOfficial(t) {
@@ -779,6 +786,7 @@ async function after(page, extra) {
           const tx = await padC().create(name, symbol, vault);
           setLog("tx " + tx.hash);
           await tx.wait();
+          boardCache = null;
           const n = Number(await padC().launchCount());
           const id = n - 1;
           const meta = {
