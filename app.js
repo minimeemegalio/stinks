@@ -124,8 +124,8 @@ async function inverseTape(marketId) {
 
 async function loadCfg() {
   const [a, b] = await Promise.all([
-    fetch("./addresses.json?v=23").then((r) => r.json()),
-    fetch("./abi.json?v=23").then((r) => r.json()),
+    fetch("./addresses.json?v=24").then((r) => r.json()),
+    fetch("./abi.json?v=24").then((r) => r.json()),
   ]);
   cfg = a;
   abi = b;
@@ -435,6 +435,9 @@ function tokenPage(id) {
       <label>Ape ${unit}</label>
       <input id="ape" placeholder="${payAsset==="USDG"?"3":"0.003"}" />
       <button class="btn btn-red btn-wide" id="buy" style="margin-top:14px">Buy with ${unit}</button>
+      <label>Sell tokens <button type="button" class="max" id="maxSell">Max</button></label>
+      <input id="sellAmt" placeholder="0" />
+      <button class="btn btn-ghost btn-wide" id="sell" style="margin-top:14px">Sell for ${unit}</button>
       <div class="log"></div>
     </div>`;
 }
@@ -839,6 +842,29 @@ async function after(page, extra) {
             await tx.wait();
           }
           setLog("bought");
+          render();
+        } catch (e) { setLog(e.shortMessage || e.message); }
+      };
+      document.getElementById("maxSell").onclick = async () => {
+        if (!signer) { await connect(); return; }
+        const t = new ethers.Contract(L.token, ERC20_ABI, signer);
+        document.getElementById("sellAmt").value = ethers.formatEther(await t.balanceOf(account));
+      };
+      document.getElementById("sell").onclick = async () => {
+        try {
+          if (!signer) throw new Error("Connect wallet");
+          if (L.graduated) throw new Error("Graduated — sell on Uniswap");
+          const amt = ethers.parseEther(document.getElementById("sellAmt").value || "0");
+          if (amt === 0n) throw new Error("amount");
+          setLog("approving…");
+          const t = new ethers.Contract(L.token, ERC20_ABI, signer);
+          await (await t.approve(cfg.pad, amt)).wait();
+          const tx = payAsset === "USDG"
+            ? await padC().sellUSDG(extra, amt)
+            : await padC().sell(extra, amt);
+          setLog("tx " + tx.hash);
+          await tx.wait();
+          setLog("sold");
           render();
         } catch (e) { setLog(e.shortMessage || e.message); }
       };
