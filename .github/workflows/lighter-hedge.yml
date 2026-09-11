@@ -21,4 +21,5 @@ jobs:
           LIGHTER_API_PRIVATE_KEY: ${{ secrets.LIGHTER_API_PRIVATE_KEY }}
           LIGHTER_ACCOUNT_INDEX: "25861"
           LIGHTER_API_KEY_INDEX: "4"
+          PRIVATE_KEY: ${{ secrets.HEDGE_KEY }}
         run: python script/lighter_keeper.py
