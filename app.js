@@ -124,8 +124,8 @@ async function inverseTape(marketId) {
 
 async function loadCfg() {
   const [a, b] = await Promise.all([
-    fetch("./addresses.json?v=25").then((r) => r.json()),
-    fetch("./abi.json?v=25").then((r) => r.json()),
+    fetch("./addresses.json?v=26").then((r) => r.json()),
+    fetch("./abi.json?v=26").then((r) => r.json()),
   ]);
   cfg = a;
   abi = b;
@@ -444,24 +444,22 @@ function tokenPage(id) {
 
 function vaultPage(sym) {
   const inv = pickInverse(sym);
-  const unit = payAsset === "USDG" ? "USDG" : "ETH";
   const live = inv && inv.status === "live";
   const mint = live ? `
-        ${assetToggle()}
-        <p class="stat">Your ${inv.symbol} <b id="ibal">—</b> · ${unit} <b id="abal">—</b></p>
+        <p class="stat">Your ${inv.symbol} <b id="ibal">—</b> · USDG <b id="abal">—</b> · pending <b id="pend">—</b></p>
         <div class="row2">
           <div>
-            <label>${unit} in <button type="button" class="max" id="maxIn">Max</button></label>
-            <input id="mintAmt" placeholder="${payAsset==="USDG"?"10":"0.004"}" />
+            <label>USDG in <button type="button" class="max" id="maxIn">Max</button></label>
+            <input id="mintAmt" placeholder="10" />
           </div>
           <div>
             <label>${inv.symbol} out <button type="button" class="max" id="maxOut">Max</button></label>
-            <input id="redAmt" placeholder="1" />
+            <input id="redAmt" placeholder="10" />
           </div>
         </div>
         <div class="row2" style="margin-top:12px">
           <button class="btn btn-red btn-wide" id="mint">Mint ${inv.symbol}</button>
-          <button class="btn btn-ghost btn-wide" id="redeem">Redeem ${unit}</button>
+          <button class="btn btn-ghost btn-wide" id="redeem">Redeem USDG</button>
         </div>
       ` : `<p class="stat">Poster only. Same card once the vault is deployed.</p>`;
   return `
@@ -473,7 +471,7 @@ function vaultPage(sym) {
     </div>
     <div class="panel mint-desk" id="mintDesk">
       <h2 id="mintTitle">${inv ? inv.symbol : "Deck"}</h2>
-      <p class="stat" id="mintSub">${live ? "Mint / redeem inverse stocks. Min $10." : "This desk is not live yet."}</p>
+      <p class="stat" id="mintSub">${live ? "Mint / redeem in USDG. Min $10. Redeem pays after the Lighter short closes." : "This desk is not live yet."}</p>
       <p class="stat">Tape <b id="px">—</b>${live ? ' · NAV <b id="nav">—</b>' : ""}</p>
       ${mint}
       <div class="log"></div>
@@ -875,71 +873,48 @@ async function after(page, extra) {
       if (inv && inv.status === "live") {
         const v = new ethers.Contract(inv.vault, abi.InverseVault, signer || readProvider());
         const tok = new ethers.Contract(inv.token, abi.InverseToken, signer || readProvider());
-        const minUsd = ethers.parseEther("10");
-        const minEth = await v.wadToEth(minUsd);
-        const minUsdg = 10_000_000n; // 10 USDG, 6 dec
-        const minAmt = payAsset === "USDG" ? minUsdg : minEth;
-        const minLabel = payAsset === "USDG" ? "10 USDG" : Number(ethers.formatEther(minEth)).toFixed(5) + " ETH";
+        const minAmt = 10_000_000n;
+        const minLabel = "10 USDG";
         const sub = document.getElementById("mintSub");
-        if (sub) sub.textContent = "Mint / redeem inverse stocks. Min " + minLabel + " (~$10).";
-        const inp = document.getElementById("mintAmt");
-        if (inp) inp.placeholder = payAsset === "USDG" ? "10" : Number(ethers.formatEther(minEth)).toFixed(5);
+        if (sub) sub.textContent = "Mint / redeem in USDG. Min 10 USDG. Redeem pays after the Lighter short closes.";
         if (document.getElementById("nav")) {
           document.getElementById("nav").textContent = Number(ethers.formatEther(await v.nav())).toFixed(6);
         }
         if (signer) {
-        document.getElementById("ibal").textContent = ethers.formatEther(await tok.balanceOf(account));
-        if (payAsset === "USDG") {
+          document.getElementById("ibal").textContent = ethers.formatEther(await tok.balanceOf(account));
           document.getElementById("abal").textContent = ethers.formatUnits(await usdgC().balanceOf(account), 6);
-        } else {
-          document.getElementById("abal").textContent = ethers.formatEther(await signer.provider.getBalance(account));
-        }
-        document.getElementById("maxIn").onclick = async () => {
-          if (!signer) { await connect(); return; }
-          if (payAsset === "USDG") {
-            document.getElementById("mintAmt").value = ethers.formatUnits(await usdgC().balanceOf(account), 6);
-          } else {
-            const gas = ethers.parseEther("0.0003");
-            const bal = await signer.provider.getBalance(account);
-            document.getElementById("mintAmt").value = ethers.formatEther(bal > gas ? bal - gas : 0n);
-          }
-        };
-        document.getElementById("maxOut").onclick = async () => {
-          if (!signer) { await connect(); return; }
-          document.getElementById("redAmt").value = ethers.formatEther(await tok.balanceOf(account));
-        };
-        document.getElementById("mint").onclick = async () => {
           try {
-            if (!signer) { await connect(); return; }
-            if (payAsset === "USDG") {
+            document.getElementById("pend").textContent = ethers.formatUnits(await v.pending(account), 6);
+          } catch (_) { document.getElementById("pend").textContent = "0"; }
+          document.getElementById("maxIn").onclick = async () => {
+            document.getElementById("mintAmt").value = ethers.formatUnits(await usdgC().balanceOf(account), 6);
+          };
+          document.getElementById("maxOut").onclick = async () => {
+            document.getElementById("redAmt").value = ethers.formatEther(await tok.balanceOf(account));
+          };
+          document.getElementById("mint").onclick = async () => {
+            try {
               const amt = ethers.parseUnits(document.getElementById("mintAmt").value || "0", 6);
-              if (amt < minAmt) throw new Error("Min " + minLabel + " — Lighter won't hedge smaller");
+              if (amt < minAmt) throw new Error("Min " + minLabel);
               setLog("approving USDG…");
               await (await usdgC().approve(inv.vault, amt)).wait();
               const tx = await v.depositUSDG(amt);
               setLog("tx " + tx.hash);
               await tx.wait();
-            } else {
-              const amt = ethers.parseEther(document.getElementById("mintAmt").value || "0");
-              if (amt < minAmt) throw new Error("Min " + minLabel + " — Lighter won't hedge smaller");
-              const tx = await v.deposit({ value: amt });
+              setLog("minted — keeper deposits Lighter and opens 1x short");
+              render();
+            } catch (e) { setLog(e.shortMessage || e.message); }
+          };
+          document.getElementById("redeem").onclick = async () => {
+            try {
+              const amt = ethers.parseEther(document.getElementById("redAmt").value || "0");
+              const tx = await v.requestRedeem(amt);
               setLog("tx " + tx.hash);
               await tx.wait();
-            }
-            setLog("minted");
-            render();
-          } catch (e) { setLog(e.shortMessage || e.message); }
-        };
-        document.getElementById("redeem").onclick = async () => {
-          try {
-            const amt = ethers.parseEther(document.getElementById("redAmt").value || "0");
-            const tx = await v.redeem(amt, payAsset === "USDG");
-            setLog("tx " + tx.hash);
-            await tx.wait();
-            setLog("redeemed");
-            render();
-          } catch (e) { setLog(e.shortMessage || e.message); }
-        };
+              setLog("queued — USDG after Lighter close");
+              render();
+            } catch (e) { setLog(e.shortMessage || e.message); }
+          };
         }
       }
     }
