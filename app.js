@@ -124,8 +124,8 @@ async function inverseTape(marketId) {
 
 async function loadCfg() {
   const [a, b] = await Promise.all([
-    fetch("./addresses.json?v=22").then((r) => r.json()),
-    fetch("./abi.json?v=22").then((r) => r.json()),
+    fetch("./addresses.json?v=23").then((r) => r.json()),
+    fetch("./abi.json?v=23").then((r) => r.json()),
   ]);
   cfg = a;
   abi = b;
@@ -317,7 +317,7 @@ function home() {
     <section class="hero">
       <div>
         <h1>Launch coins<br>paired with <em>inverse stocks</em></h1>
-        <p>Ape in ETH or USDG. Graduate to MEME/iToken. Fees buy and burn $STINKS. When stocks dump, Stinks prints.</p>
+        <p>Ape in ETH or USDG. Graduate to Uniswap. 1% of pool swaps to the hopper. When stocks dump, Stinks prints.</p>
         <a class="btn btn-red" href="#launch">Launch a token →</a>
       </div>
       <div class="feat">
@@ -332,14 +332,14 @@ function home() {
         </div>
       </div>
     </section>
-    <a class="official" href="#token/0">
+    ${cfg.stinks ? `<a class="official" href="#token/0">
       <div class="av" style="background-image:url('./logo.png?v=2');background-size:cover"></div>
       <div>
         <div class="tkr">$STINKS · official pad token</div>
         <p>Official launchpad token. 70% of launchpad's volume fees buy and burn the token.</p>
         <span class="ca">${cfg.stinks}</span>
       </div>
-    </a>
+    </a>` : ""}
     <div class="toolbar">
       <input class="search" id="q" placeholder="Search name, ticker, or contract" />
     </div>
