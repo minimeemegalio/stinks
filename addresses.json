@@ -10,9 +10,9 @@
   "ethUsd": "0x2B45FE66F1377f3A40D9F74479654c3211B31a26",
   "iNVDA": "0xDcE01f11599B140db7e5e86459E5dDB448427d0f",
   "vault": "0x4dF861f37662DCFE9e104eb7d77f655Db742805f",
-  "pad": "0x5c95b0B855e7f359A3D519FBe94088A8D82cC70D",
+  "pad": "0xA17Ea08a0CbB47d0Bf68e51892593318ef2dEc5F",
   "hook": "0x4b0dDad8123f70f12e1305747b12F23CB3BA8044",
-  "broker": "0x86d4ad297733f0f11e76706b75023CD0DD623D03",
+  "broker": "0x61676Db8518f3eAeA877E6605D45762C4abc7402",
   "inverses": [
     { "symbol": "iSPY", "underlying": "SPY", "name": "S&P 500", "token": "", "vault": "", "status": "soon" },
     { "symbol": "iQQQ", "underlying": "QQQ", "name": "Nasdaq 100", "token": "", "vault": "", "status": "soon" },
