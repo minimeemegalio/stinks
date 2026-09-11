@@ -124,8 +124,8 @@ async function inverseTape(marketId) {
 
 async function loadCfg() {
   const [a, b] = await Promise.all([
-    fetch("./addresses.json?v=26").then((r) => r.json()),
-    fetch("./abi.json?v=26").then((r) => r.json()),
+    fetch("./addresses.json?v=27").then((r) => r.json()),
+    fetch("./abi.json?v=27").then((r) => r.json()),
   ]);
   cfg = a;
   abi = b;
@@ -471,7 +471,7 @@ function vaultPage(sym) {
     </div>
     <div class="panel mint-desk" id="mintDesk">
       <h2 id="mintTitle">${inv ? inv.symbol : "Deck"}</h2>
-      <p class="stat" id="mintSub">${live ? "Mint / redeem in USDG. Min $10. Redeem pays after the Lighter short closes." : "This desk is not live yet."}</p>
+      <p class="stat" id="mintSub">${live ? "Mint / redeem in USDG. Min $10 both ways. Redeem pays after the Lighter short closes." : "This desk is not live yet."}</p>
       <p class="stat">Tape <b id="px">—</b>${live ? ' · NAV <b id="nav">—</b>' : ""}</p>
       ${mint}
       <div class="log"></div>
@@ -876,7 +876,7 @@ async function after(page, extra) {
         const minAmt = 10_000_000n;
         const minLabel = "10 USDG";
         const sub = document.getElementById("mintSub");
-        if (sub) sub.textContent = "Mint / redeem in USDG. Min 10 USDG. Redeem pays after the Lighter short closes.";
+        if (sub) sub.textContent = "Mint / redeem in USDG. Min 10 USDG both ways. Redeem pays after the Lighter short closes.";
         if (document.getElementById("nav")) {
           document.getElementById("nav").textContent = Number(ethers.formatEther(await v.nav())).toFixed(6);
         }
@@ -908,6 +908,9 @@ async function after(page, extra) {
           document.getElementById("redeem").onclick = async () => {
             try {
               const amt = ethers.parseEther(document.getElementById("redAmt").value || "0");
+              const nav = await v.nav();
+              const usd = amt * nav / 10n ** 18n;
+              if (usd < ethers.parseEther("10")) throw new Error("Min 10 USDG — Lighter won't close smaller");
               const tx = await v.requestRedeem(amt);
               setLog("tx " + tx.hash);
               await tx.wait();
