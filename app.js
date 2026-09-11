@@ -36,7 +36,6 @@ function artFor(t) {
   if (meta.img) return meta.img;
   const tok = (t.token || "").toLowerCase();
   if (tok && cfg.stinks && tok === String(cfg.stinks).toLowerCase()) return "./logo.png?v=2";
-  if (String(t.symbol || "").toUpperCase() === "STINKS") return "./logo.png?v=2";
   return "";
 }
 function shrinkFile(file) {
@@ -126,8 +125,8 @@ async function inverseTape(marketId) {
 
 async function loadCfg() {
   const [a, b] = await Promise.all([
-    fetch("./addresses.json?v=28").then((r) => r.json()),
-    fetch("./abi.json?v=28").then((r) => r.json()),
+    fetch("./addresses.json?v=29").then((r) => r.json()),
+    fetch("./abi.json?v=29").then((r) => r.json()),
   ]);
   cfg = a;
   abi = b;
@@ -293,8 +292,7 @@ async function loadBoard(force) {
 
 function isOfficial(t) {
   const tok = (t.token || "").toLowerCase();
-  return (cfg.stinks && tok === String(cfg.stinks).toLowerCase())
-    || String(t.symbol || "").toUpperCase() === "STINKS";
+  return !!(cfg.stinks && tok && tok === String(cfg.stinks).toLowerCase());
 }
 function tokenCard(t) {
   const av = (t.symbol || "?").replace("$", "").slice(0, 3).toUpperCase();
@@ -339,7 +337,7 @@ function home() {
         </div>
       </div>
     </section>
-    ${cfg.stinks ? `<a class="official" href="#token/0">
+    ${cfg.stinks ? `<a class="official" href="#token/${cfg.stinksLaunch ?? 0}">
       <div class="av" style="background-image:url('./logo.png?v=2');background-size:cover"></div>
       <div>
         <div class="tkr">$STINKS · official pad token</div>
@@ -422,7 +420,7 @@ function launchPage() {
 function tokenPage(id) {
   const unit = payAsset === "USDG" ? "USDG" : "ETH";
   const meta = getMeta(id);
-  const src = artFor({ id, token: Number(id) === 0 ? cfg.stinks : "", symbol: Number(id) === 0 ? "STINKS" : "" });
+  const src = artFor({ id });
   const av = src
     ? `<div class="av" style="width:64px;height:64px;background-image:url('${src}');background-size:cover;background-position:center"></div>`
     : `<div class="av" style="width:64px;height:64px">$</div>`;
@@ -431,9 +429,10 @@ function tokenPage(id) {
       <div class="card-top" style="margin-bottom:16px">
         ${av}
         <div>
-          <h2 id="tt" style="margin:0">${Number(id) === 0 ? "$STINKS" : "Launch #" + id}</h2>
-          <p class="stat" id="tsub" style="margin:4px 0 0">${Number(id) === 0 ? "Official launchpad token. 70% of launchpad's volume fees buy and burn the token." : "Paired with " + (meta.pair || "ETH")}</p>
+          <h2 id="tt" style="margin:0">Launch #${id}</h2>
+          <p class="stat" id="tsub" style="margin:4px 0 0">Paired with ${meta.pair || "ETH"}</p>
         </div>
+        <span class="badge" id="tbadge" style="display:none"></span>
       </div>
       ${assetToggle()}
       <div class="bar" style="margin:16px 0"><i id="tbar" style="width:0"></i></div>
@@ -821,7 +820,15 @@ async function after(page, extra) {
       const pct = targetWad > 0n ? Number((L.raisedWad * 10000n) / targetWad) / 100 : 0;
       try {
         const t = new ethers.Contract(L.token, ERC20_ABI, readProvider());
-        document.getElementById("tt").textContent = `$${await t.symbol()} · ${await t.name()}`;
+        const [sym, name] = await Promise.all([t.symbol(), t.name()]);
+        document.getElementById("tt").textContent = `$${sym} · ${name}`;
+        if (isOfficial(L)) {
+          document.getElementById("tsub").textContent = "Official launchpad token. 70% of launchpad's volume fees buy and burn the token.";
+          const b = document.getElementById("tbadge");
+          if (b) { b.style.display = ""; b.className = "badge off"; b.textContent = "Official"; }
+          const av = document.querySelector(".panel .av");
+          if (av) { av.style.backgroundImage = "url('./logo.png?v=2')"; av.style.backgroundSize = "cover"; av.textContent = ""; }
+        }
       } catch (_) {}
       document.getElementById("tbar").style.width = Math.min(100, pct) + "%";
       document.getElementById("raised").textContent = ethers.formatEther(L.raisedWad);
