@@ -124,8 +124,8 @@ async function inverseTape(marketId) {
 
 async function loadCfg() {
   const [a, b] = await Promise.all([
-    fetch("./addresses.json?v=24").then((r) => r.json()),
-    fetch("./abi.json?v=24").then((r) => r.json()),
+    fetch("./addresses.json?v=25").then((r) => r.json()),
+    fetch("./abi.json?v=25").then((r) => r.json()),
   ]);
   cfg = a;
   abi = b;
@@ -452,7 +452,7 @@ function vaultPage(sym) {
         <div class="row2">
           <div>
             <label>${unit} in <button type="button" class="max" id="maxIn">Max</button></label>
-            <input id="mintAmt" placeholder="${payAsset==="USDG"?"10":"0.001"}" />
+            <input id="mintAmt" placeholder="${payAsset==="USDG"?"10":"0.004"}" />
           </div>
           <div>
             <label>${inv.symbol} out <button type="button" class="max" id="maxOut">Max</button></label>
@@ -473,7 +473,7 @@ function vaultPage(sym) {
     </div>
     <div class="panel mint-desk" id="mintDesk">
       <h2 id="mintTitle">${inv ? inv.symbol : "Deck"}</h2>
-      <p class="stat" id="mintSub">${live ? "Mint / redeem inverse stocks." : "This desk is not live yet."}</p>
+      <p class="stat" id="mintSub">${live ? "Mint / redeem inverse stocks. Min $10." : "This desk is not live yet."}</p>
       <p class="stat">Tape <b id="px">—</b>${live ? ' · NAV <b id="nav">—</b>' : ""}</p>
       ${mint}
       <div class="log"></div>
@@ -872,10 +872,22 @@ async function after(page, extra) {
     if (page === "vault") {
       startTape(extra);
       const inv = pickInverse(extra);
-      if (inv && inv.status === "live" && signer) {
-        const v = new ethers.Contract(inv.vault, abi.InverseVault, signer);
-        const tok = new ethers.Contract(inv.token, abi.InverseToken, signer);
-        document.getElementById("nav").textContent = Number(ethers.formatEther(await v.nav())).toFixed(6);
+      if (inv && inv.status === "live") {
+        const v = new ethers.Contract(inv.vault, abi.InverseVault, signer || readProvider());
+        const tok = new ethers.Contract(inv.token, abi.InverseToken, signer || readProvider());
+        const minUsd = ethers.parseEther("10");
+        const minEth = await v.wadToEth(minUsd);
+        const minUsdg = 10_000_000n; // 10 USDG, 6 dec
+        const minAmt = payAsset === "USDG" ? minUsdg : minEth;
+        const minLabel = payAsset === "USDG" ? "10 USDG" : Number(ethers.formatEther(minEth)).toFixed(5) + " ETH";
+        const sub = document.getElementById("mintSub");
+        if (sub) sub.textContent = "Mint / redeem inverse stocks. Min " + minLabel + " (~$10).";
+        const inp = document.getElementById("mintAmt");
+        if (inp) inp.placeholder = payAsset === "USDG" ? "10" : Number(ethers.formatEther(minEth)).toFixed(5);
+        if (document.getElementById("nav")) {
+          document.getElementById("nav").textContent = Number(ethers.formatEther(await v.nav())).toFixed(6);
+        }
+        if (signer) {
         document.getElementById("ibal").textContent = ethers.formatEther(await tok.balanceOf(account));
         if (payAsset === "USDG") {
           document.getElementById("abal").textContent = ethers.formatUnits(await usdgC().balanceOf(account), 6);
@@ -898,8 +910,10 @@ async function after(page, extra) {
         };
         document.getElementById("mint").onclick = async () => {
           try {
+            if (!signer) { await connect(); return; }
             if (payAsset === "USDG") {
               const amt = ethers.parseUnits(document.getElementById("mintAmt").value || "0", 6);
+              if (amt < minAmt) throw new Error("Min " + minLabel + " — Lighter won't hedge smaller");
               setLog("approving USDG…");
               await (await usdgC().approve(inv.vault, amt)).wait();
               const tx = await v.depositUSDG(amt);
@@ -907,6 +921,7 @@ async function after(page, extra) {
               await tx.wait();
             } else {
               const amt = ethers.parseEther(document.getElementById("mintAmt").value || "0");
+              if (amt < minAmt) throw new Error("Min " + minLabel + " — Lighter won't hedge smaller");
               const tx = await v.deposit({ value: amt });
               setLog("tx " + tx.hash);
               await tx.wait();
@@ -925,6 +940,7 @@ async function after(page, extra) {
             render();
           } catch (e) { setLog(e.shortMessage || e.message); }
         };
+        }
       }
     }
     if (page === "hopper" || page === "stats") {
