@@ -20,8 +20,8 @@ STATE = ROOT / "script" / "lighter-keeper-state.json"
 HEDGE = "0xd6f53f4CcE2298585e5091b492daB61e16Fe7EE2"
 
 DESKS = [
-    {"symbol": "iNVDA", "market": "NVDA", "market_id": 15, "vault": os.environ.get("INVDA_VAULT", "0x4dF861f37662DCFE9e104eb7d77f655Db742805f"), "size_decimals": 4, "min_base": 0.04, "min_quote": 10.0},
-    {"symbol": "iTSLA", "market": "TSLA", "market_id": 16, "vault": os.environ.get("ITSLA_VAULT", "0xd9706f093ef1aa4f547e09C023e2CD2f7C6ab410"), "size_decimals": 4, "min_base": 0.02, "min_quote": 10.0},
+    {"symbol": "iNVDA", "market": "NVDA", "market_id": 15, "vault": os.environ.get("INVDA_VAULT", "0x02b73D06c5d08199a8960879BDBefb31f9A0eCB2"), "size_decimals": 4, "min_base": 0.04, "min_quote": 10.0},
+    {"symbol": "iTSLA", "market": "TSLA", "market_id": 16, "vault": os.environ.get("ITSLA_VAULT", "0xF040459713289Ea6BE38117538D52D46696c7117"), "size_decimals": 4, "min_base": 0.02, "min_quote": 10.0},
 ]
 
 
